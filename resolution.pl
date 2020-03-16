@@ -109,8 +109,8 @@ singlestep([Disjunction|Rest], New) :-
     unary(Formula),
     component(Formula, Newformula),
     remove(Formula, Disjunction, Temporary),
-    Newdisjunction = [Newformula, Temporary],
-    New = [Newdis | Rest].
+    append([Newformula], Temporary, Newdisjunction),
+    New = [Newdisjunction | Rest].
 
 singlestep([Disjunction|Rest], New) :-
     member(Alpha, Disjunction),
@@ -163,12 +163,12 @@ resolution(Res, Res).
                               resolution process to Old */
 
 /* trivial resolvant case */
-
 resolutionstep([Disjunction|Rest], New) :-
     member(false, Disjunction),
     remove(false, Disjunction, Temp),
     New = [Temp | Rest].
 
+/* usual atomic resolution rule for non-negated */
 resolutionstep([Dis1|Rest], New) :-
     member(Atom, Dis1),
     fetch(neg Atom, Rest, Dis2),
@@ -178,6 +178,35 @@ resolutionstep([Dis1|Rest], New) :-
     remove(Dis2, Rest, Newrest),
     New = [NewDis | Newrest].
 
+/* usual atomic resolution rule for negated */
+resolutionstep([Dis1|Rest], New) :-
+    member(neg Atom, Dis1),
+    fetch(Atom, Rest, Dis2),
+    remove(neg Atom, Dis1, Temp1),
+    remove(Atom, Dis2, Temp2),
+    append(Temp1, Temp2, NewDis),
+    remove(Dis2, Rest, Newrest),
+    New = [NewDis | Newrest].
+
+/* recurse case to allow inner elements to be dealt with */
 resolutionstep([Dis1|Rest], New) :-
     resolutionstep(Rest, Newrest),
     append([Dis1], Newrest, New).
+
+
+/* test(Formula) :- will print YES is formula is a tautology, NO otherwise */
+
+test(Formula) :-
+    clauseform(neg Formula, CNF),
+    resolution(CNF, Resolve),
+    if_then_else(member([], Resolve), print("YES"), print("NO")).
+
+
+/* if_then_else(A,B,C) :- if A holds then perform B, otherwise perform C */
+if_then_else(A, B, C) :-
+    A,
+    !,
+    B.
+
+if_then_else(A, B, C) :-
+    C.
