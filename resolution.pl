@@ -1,12 +1,17 @@
 
 ?-op(140, fy, neg).
-?-op(160, xfy, [and, or, imp, revimp, uparrow, downarrow, notimp, notrevimp]).
+?-op(160, xfy, [and, or, imp, revimp, uparrow, downarrow, notimp, notrevimp, equiv]).
 
 /* member(Item, List) :- Item occurs in list */
 
 member(X, [X|_]).
 member(X, [_|Tail]) :-
     member(X, Tail).
+
+
+append([X|Y],Z,[X|W]) :-
+    append(Y,Z,W).
+append([],X,X).
 
 /* remove(Item, List, Newlist) :- removes Item from List and produces Newlist */
 
@@ -37,6 +42,8 @@ disjunctive(_ uparrow _).
 disjunctive(neg(_ downarrow _)).
 disjunctive(neg(_ notimp _)).
 disjunctive(neg(_ notrevimp _)).
+/* new equivilence-based operators */
+disjunctive(_ equiv _).
 
 /* unary(X) :- X is a double negation or negated constant */
 
@@ -63,6 +70,8 @@ components(X notimp Y, X, neg Y).
 components(neg(X notimp Y), neg X, Y).
 components(X notrevimp Y, neg X, Y).
 components(neg(X notrevimp Y), X, neg Y).
+/* new equivilence-based operations */
+components(X equiv Y, X and Y, neg X and neg Y).
 
 /* component(X,Y) :- Y is the componenet of the unary formula X */
 
@@ -87,8 +96,8 @@ singlestep([Disjunction|Rest], New) :-
     conjunctive(Alpha),
     components(Alpha, Alphaone, Alphatwo),
     remove(Alpha, Disjunction, Temporary),
-    Newdisone = (Alphaone | Temporary),
-    Newdistwo = (Alphatwo | Temporary),
+    append([Alphaone], Temporary, Newdisone),
+    append([Alphatwo], Temporary, Newdistwo),
     New = [Newdisone, Newdistwo | Rest].
 
 singlestep([Disjunction|Rest], New) :-
@@ -99,8 +108,11 @@ singlestep([Disjunction|Rest], New) :-
     Newdis = [Betaone, Betatwo | Temporary],
     New = [Newdis | Rest].
 
-singlestep([Disjunction|Rest], [Disjunction, Newrest]) :-
-    singlestep(Rest, Newrest).
+singlestep([Disjunction|Rest], New) :-
+    singlestep(Rest, Newrest),
+    /* requires this as otherwise Newrest was wrapped in a list, so this fixes
+       thing being too wrapped in objects */
+    append([Disjunction], Newrest, New).
 
 /* expand(Old,New) :- New is result of applying singlestep as many times as
                       possible on Old */
