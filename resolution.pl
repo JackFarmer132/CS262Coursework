@@ -1,6 +1,6 @@
 
 ?-op(140, fy, neg).
-?-op(160, xfy, [and, or, imp, revimp, uparrow, downarrow, notimp, notrevimp, equiv]).
+?-op(160, xfy, [and, or, imp, revimp, uparrow, downarrow, notimp, notrevimp, equiv, notequiv]).
 
 /* member(Item, List) :- Item occurs in list */
 
@@ -44,6 +44,7 @@ disjunctive(neg(_ notimp _)).
 disjunctive(neg(_ notrevimp _)).
 /* new equivilence-based operators */
 disjunctive(_ equiv _).
+disjunctive(_ notequiv _).
 
 /* unary(X) :- X is a double negation or negated constant */
 
@@ -72,8 +73,9 @@ components(X notrevimp Y, neg X, Y).
 components(neg(X notrevimp Y), X, neg Y).
 /* new equivilence-based operations */
 components(X equiv Y, X and Y, neg X and neg Y).
+components(X notequiv Y, X and neg Y, neg X and Y).
 
-/* component(X,Y) :- Y is the componenet of the unary formula X */
+/* component(X,Y) :- Y is the component of the unary formula X */
 
 component(neg neg X, X).
 component(neg true, false).
