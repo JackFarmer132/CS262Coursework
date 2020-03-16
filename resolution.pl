@@ -21,59 +21,64 @@ remove(X, [X|Tail], Newtail) :-
 remove(X, [Head|Tail], [Head|Newtail]) :-
     remove(X, Tail, Newtail).
 
-/* conjunctive(X) :- X is an alpha formula */
+    /* conjunctive(X) :- X is an alpha formula */
 
-conjunctive(_ and _).
-conjunctive(neg(_ or _)).
-conjunctive(neg(_ imp _)).
-conjunctive(neg(_ revimp _)).
-conjunctive(neg(_ uparrow _)).
-conjunctive(_ downarrow _).
-conjunctive(_ notimp _).
-conjunctive(_ notrevimp _).
+    conjunctive(_ and _).
+    conjunctive(neg(_ or _)).
+    conjunctive(neg(_ imp _)).
+    conjunctive(neg(_ revimp _)).
+    conjunctive(neg(_ uparrow _)).
+    conjunctive(_ downarrow _).
+    conjunctive(_ notimp _).
+    conjunctive(_ notrevimp _).
+    /* new equivilence-based operators */
+    conjunctive(neg(_ equiv _)).
+    conjunctive(neg(_ notequiv _)).
 
-/* disjunctive(X) :- X is beta formula */
+    /* disjunctive(X) :- X is beta formula */
 
-disjunctive(neg(_ and _)).
-disjunctive(_ or _).
-disjunctive(_ imp _).
-disjunctive(_ revimp _).
-disjunctive(_ uparrow _).
-disjunctive(neg(_ downarrow _)).
-disjunctive(neg(_ notimp _)).
-disjunctive(neg(_ notrevimp _)).
-/* new equivilence-based operators */
-disjunctive(_ equiv _).
-disjunctive(_ notequiv _).
+    disjunctive(neg(_ and _)).
+    disjunctive(_ or _).
+    disjunctive(_ imp _).
+    disjunctive(_ revimp _).
+    disjunctive(_ uparrow _).
+    disjunctive(neg(_ downarrow _)).
+    disjunctive(neg(_ notimp _)).
+    disjunctive(neg(_ notrevimp _)).
+    /* new equivilence-based operators */
+    disjunctive(_ equiv _).
+    disjunctive(_ notequiv _).
 
-/* unary(X) :- X is a double negation or negated constant */
+    /* unary(X) :- X is a double negation or negated constant */
 
-unary(neg neg _).
-unary(neg true).
-unary(neg false).
+    unary(neg neg _).
+    unary(neg true).
+    unary(neg false).
 
-/* components(X,Y,Z) :- Y and Z are the components of formula X defined in a/b
-                        table */
+    /* components(X,Y,Z) :- Y and Z are the components of formula X defined in a/b
+                            table */
 
-components(X and Y, X, Y).
-components(neg(X and Y), neg X, neg Y).
-components(X or Y, X, Y).
-components(neg(X or Y), neg X, neg Y).
-components(X imp Y, neg X, Y).
-components(neg(X imp Y), X, neg Y).
-components(X revimp Y, X, neg Y).
-components(neg(X revimp Y), neg X, Y).
-components(X uparrow Y, neg X, neg Y).
-components(neg(X uparrow Y), X, Y).
-components(X downarrow Y, neg X, neg Y).
-components(neg(X downarrow Y), X, Y).
-components(X notimp Y, X, neg Y).
-components(neg(X notimp Y), neg X, Y).
-components(X notrevimp Y, neg X, Y).
-components(neg(X notrevimp Y), X, neg Y).
-/* new equivilence-based operations */
-components(X equiv Y, X and Y, neg X and neg Y).
-components(X notequiv Y, X and neg Y, neg X and Y).
+    components(X and Y, X, Y).
+    components(neg(X and Y), neg X, neg Y).
+    components(X or Y, X, Y).
+    components(neg(X or Y), neg X, neg Y).
+    components(X imp Y, neg X, Y).
+    components(neg(X imp Y), X, neg Y).
+    components(X revimp Y, X, neg Y).
+    components(neg(X revimp Y), neg X, Y).
+    components(X uparrow Y, neg X, neg Y).
+    components(neg(X uparrow Y), X, Y).
+    components(X downarrow Y, neg X, neg Y).
+    components(neg(X downarrow Y), X, Y).
+    components(X notimp Y, X, neg Y).
+    components(neg(X notimp Y), neg X, Y).
+    components(X notrevimp Y, neg X, Y).
+    components(neg(X notrevimp Y), X, neg Y).
+    /* new equivilence-based operations */
+    components(X equiv Y, X and Y, neg X and neg Y).
+    components(neg(X equiv Y), neg X or neg Y, X or Y).
+    components(X notequiv Y, X and neg Y, neg X and Y).
+    components(neg(X notequiv Y), neg X or Y, X or neg Y).
 
 /* component(X,Y) :- Y is the component of the unary formula X */
 
