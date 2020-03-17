@@ -9,6 +9,29 @@ member(X, [_|Tail]) :-
     member(X, Tail).
 
 
+/* equivlist(List1, List2) :- will identify if the lists are equivilent,
+                              meaning they contain all the same elements
+                              (not necessarily in the same order though) */
+
+equivlist([],[]).
+equivlist([Head|Tail], List2) :-
+    member(Head, List2),
+    removesingle(Head, List2, Newlist),
+    not(Newlist = List2),
+    equivlist(Tail, Newlist).
+
+/* base case */
+removesingle(X, [], []).
+/* will only remove the first instance of the X */
+removesingle(X, [X|Rest], Y) :-
+    Y = Rest.
+/* searches for the X in the second list */
+removesingle(X, [Head|Rest], Y) :-
+    removesingle(X, Rest, Y2),
+    append([Head], Y2, Y).
+
+
+
 /* append(List1, List2, List3) :- will combine lists 1 and 2 into a single list:
                                   list3 */
 append([X|Y],Z,[X|W]) :-
@@ -181,16 +204,19 @@ resolutionstep([Dis1|Rest], New) :-
     fetch(neg Atom, Rest, Dis2),
     remove(Atom, Dis1, Temp1),
     remove(neg Atom, Dis2, Temp2),
-    print("here"), nl,
     append(Temp1, Temp2, Newdis),
     /*remove(Dis2, Rest, Newrest),*/
     print("a-Dis1: "), print(Dis1), print("  becomes Temp1: "), print(Temp1), nl,
     print("a-Dis2: "), print(Dis2), print("  becomes Temp2: "), print(Temp2), nl,
     print("a-Newdis: "), print(Newdis), nl,
+    /* need to check that at no point adding a duplicate */
     not(member(Newdis, Rest)),
+    /* make sure elements in the lists are not the same */
+    not(equivlist(Newdis, Dis1)),
+    not(equivlist(Newdis, Dis2)),
     append([Dis1], Rest, Newrest),
+    append(Newrest, [Newdis], New),
     print("a-Newrest: "), print(Newrest), nl,
-    append([Newdis], Newrest, New),
     print("a-New: "), print([Newdis | Newrest]), nl.
     /*New = [Newdis | Newrest].*/
 
@@ -206,17 +232,27 @@ resolutionstep([Dis1|Rest], New) :-
     print("b-Dis2: "), print(Dis2), print("  becomes Temp2: "), print(Temp2), nl,
     print("b-Newdis: "), print(Newdis), nl,
     not(member(Newdis, Rest)),
+    /* make sure elements in the lists are not the same */
+    not(equivlist(Newdis, Dis1)),
+    not(equivlist(Newdis, Dis2)),
     append([Dis1], Rest, Newrest),
+    append(Newrest, [Newdis], New),
     print("b-Newrest: "), print(Newrest), nl,
-    append([Newdis], Newrest, New),
     print("b-New: "), print([Newdis | Newrest]), nl.
     /*New = [Newdis | Newrest].*/
 
 /* recurse case to allow inner elements to be dealt with */
 resolutionstep([Dis1|Rest], New) :-
-print("here"), nl,
-    resolutionstep(Rest, Newrest),
-    append([Dis1], Newrest, New).
+    print("AAAAHHHHHHHHHHHH"), nl,
+    resolutionstep(Rest, [Newdis|Others]),
+    print("Newdis: "), print(Newdis), nl,
+    print("all: "), print([Newdis|Others]), nl,
+    print("Dis1: "), print(Dis1), nl,
+    not(equivlist(Newdis, Dis1)),
+    not(member(Dis1, [Newdis|Others])),
+    print("got through...."), nl,
+    print("Rest: "), print(Rest), nl,
+    append([Dis1], [Newdis|Others], New).
 
 
 /* test(Formula) :- will print YES is formula is a tautology, NO otherwise */
