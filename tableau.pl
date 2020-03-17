@@ -122,4 +122,5 @@ expand(Dis, Dis).
 /* dualclauseform(X,Y) :- Y is the dual clause form of X */
 
 dualclauseform(X, Y) :-
+    print("Thing is..."), print(X), nl,
     expand([[X]], Y).

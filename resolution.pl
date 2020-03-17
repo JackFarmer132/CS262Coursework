@@ -1,4 +1,3 @@
-
 ?-op(140, fy, neg).
 ?-op(160, xfy, [and, or, imp, revimp, uparrow, downarrow, notimp, notrevimp, equiv, notequiv]).
 
@@ -7,6 +6,47 @@
 member(X, [X|_]).
 member(X, [_|Tail]) :-
     member(X, Tail).
+
+
+/* equivlist(List1, List2) :- will identify if the lists are equivilent,
+                              meaning they contain all the same elements
+                              (not necessarily in the same order though) */
+
+equivlist([],[]).
+equivlist([Head|Tail], List2) :-
+    member(Head, List2),
+    removesingle(Head, List2, Newlist),
+    not(Newlist = List2),
+    equivlist(Tail, Newlist).
+
+/* reduce(List,Temp,Newlist) :- will take in a list and return one where every
+                           element occurs only once */
+reduce([], Temp, Temp).
+reduce([Head | Rest], Temp, Newlist) :-
+    member(Head, Temp),
+    reduce(Rest, Temp, Newlist).
+reduce([Head | Rest], Temp, Newlist) :-
+    not(member(Head, Temp)),
+    reduce(Rest, [Head | Temp], Newlist).
+
+/* reduceall(List,Newlist) :- will take in a list of lists, apply reduce() to
+                               all and return the greater, simplified list */
+
+reduceall([], Temp, Temp).
+reduceall([Head | Rest], Temp, Newlist) :-
+    reduce(Head, [], Newhead),
+    reduceall(Rest, [Newhead | Temp], Newlist).
+
+/* base case */
+removesingle(X, [], []).
+/* will only remove the first instance of the X */
+removesingle(X, [X|Rest], Y) :-
+    Y = Rest.
+/* searches for the X in the second list */
+removesingle(X, [Head|Rest], Y) :-
+    removesingle(X, Rest, Y2),
+    append([Head], Y2, Y).
+
 
 
 /* append(List1, List2, List3) :- will combine lists 1 and 2 into a single list:
@@ -50,9 +90,6 @@ conjunctive(neg(_ uparrow _)).
 conjunctive(_ downarrow _).
 conjunctive(_ notimp _).
 conjunctive(_ notrevimp _).
-/* new equivilence-based operators */
-conjunctive(neg(_ equiv _)).
-conjunctive(neg(_ notequiv _)).
 
 /* disjunctive(X) :- X is beta formula */
 
@@ -64,9 +101,13 @@ disjunctive(_ uparrow _).
 disjunctive(neg(_ downarrow _)).
 disjunctive(neg(_ notimp _)).
 disjunctive(neg(_ notrevimp _)).
+
 /* new equivilence-based operators */
-disjunctive(_ equiv _).
-disjunctive(_ notequiv _).
+
+equivilent(_ equiv _).
+equivilent(_ notequiv _).
+equivilent(neg(_ equiv _)).
+equivilent(neg(_ notequiv _)).
 
 /* unary(X) :- X is a double negation or negated constant */
 
@@ -94,16 +135,17 @@ components(neg(X notimp Y), neg X, Y).
 components(X notrevimp Y, neg X, Y).
 components(neg(X notrevimp Y), X, neg Y).
 /* new equivilence-based operations */
-components(X equiv Y, X and Y, neg X and neg Y).
-components(neg(X equiv Y), neg X or neg Y, X or Y).
-components(X notequiv Y, X and neg Y, neg X and Y).
-components(neg(X notequiv Y), neg X or Y, X or neg Y).
 
 /* component(X,Y) :- Y is the component of the unary formula X */
 
 component(neg neg X, X).
 component(neg true, false).
 component(neg false, true).
+/* new equivilence-based operations */
+component(X equiv Y, (X and Y) or (neg X and neg Y)).
+component(neg(X equiv Y), (X and neg Y) or (neg X and Y)).
+component(X notequiv Y, (X and neg Y) or (neg X and Y)).
+component(neg(X notequiv Y), (X and Y) or (neg X and neg Y)).
 
 /* singlestep(Old,New) :- new is result of applying single step of expansion
                           process to Old, which is a generalised disjunction
@@ -112,6 +154,14 @@ component(neg false, true).
 singlestep([Disjunction|Rest], New) :-
     member(Formula, Disjunction),
     unary(Formula),
+    component(Formula, Newformula),
+    remove(Formula, Disjunction, Temporary),
+    append([Newformula], Temporary, Newdisjunction),
+    New = [Newdisjunction | Rest].
+
+singlestep([Disjunction|Rest], New) :-
+    member(Formula, Disjunction),
+    equivilent(Formula),
     component(Formula, Newformula),
     remove(Formula, Disjunction, Temporary),
     append([Newformula], Temporary, Newdisjunction),
@@ -140,6 +190,7 @@ singlestep([Disjunction|Rest], New) :-
        thing being too wrapped in objects */
     append([Disjunction], Newrest, New).
 
+
 /* expand(Old,New) :- New is result of applying singlestep as many times as
                       possible on Old */
 
@@ -161,10 +212,8 @@ clauseform(X, Y) :-
 resolution(Res, Final) :-
     print("Res: "), print(Res), nl,
     resolutionstep(Res, Temp),
-    if_then_else(member([], Res), print("YES"), resolution(Temp, Final)).
+    if_then_else(member([], Temp), print("YES"), resolution(Temp, Final)).
 
-resolution(Res, Res) :-
-    print("NO inner"), nl.
 
 /* resolutionstep(Old,New) :- new is result of applying single step of
                               resolution process to Old */
@@ -181,18 +230,15 @@ resolutionstep([Dis1|Rest], New) :-
     fetch(neg Atom, Rest, Dis2),
     remove(Atom, Dis1, Temp1),
     remove(neg Atom, Dis2, Temp2),
-    print("here"), nl,
     append(Temp1, Temp2, Newdis),
-    /*remove(Dis2, Rest, Newrest),*/
+    removesingle(Dis2, Rest, Newrest),
+    not(Rest = Newrest),
+    print("a-Rest: "), print(Rest), nl,
     print("a-Dis1: "), print(Dis1), print("  becomes Temp1: "), print(Temp1), nl,
     print("a-Dis2: "), print(Dis2), print("  becomes Temp2: "), print(Temp2), nl,
     print("a-Newdis: "), print(Newdis), nl,
-    not(member(Newdis, Rest)),
-    append([Dis1], Rest, Newrest),
-    print("a-Newrest: "), print(Newrest), nl,
     append([Newdis], Newrest, New),
-    print("a-New: "), print([Newdis | Newrest]), nl.
-    /*New = [Newdis | Newrest].*/
+    print("a-New: "), print(New), nl.
 
 /* usual atomic resolution rule for negated */
 resolutionstep([Dis1|Rest], New) :-
@@ -201,16 +247,14 @@ resolutionstep([Dis1|Rest], New) :-
     remove(neg Atom, Dis1, Temp1),
     remove(Atom, Dis2, Temp2),
     append(Temp1, Temp2, Newdis),
-    /*remove(Dis2, Rest, Newrest),*/
+    removesingle(Dis2, Rest, Newrest),
+    not(Rest = Newrest),
+    print("b-Rest: "), print(Rest), nl,
     print("b-Dis1: "), print(Dis1), print("  becomes Temp1: "), print(Temp1), nl,
     print("b-Dis2: "), print(Dis2), print("  becomes Temp2: "), print(Temp2), nl,
     print("b-Newdis: "), print(Newdis), nl,
-    not(member(Newdis, Rest)),
-    append([Dis1], Rest, Newrest),
-    print("b-Newrest: "), print(Newrest), nl,
     append([Newdis], Newrest, New),
-    print("b-New: "), print([Newdis | Newrest]), nl.
-    /*New = [Newdis | Newrest].*/
+    print("b-New: "), print(New), nl.
 
 /* recurse case to allow inner elements to be dealt with */
 resolutionstep([Dis1|Rest], New) :-
