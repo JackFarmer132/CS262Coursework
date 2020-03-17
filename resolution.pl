@@ -142,10 +142,10 @@ component(neg neg X, X).
 component(neg true, false).
 component(neg false, true).
 /* new equivilence-based operations */
-component(X equiv Y, (X and Y) or (neg X and neg Y)).
-component(neg(X equiv Y), (X and neg Y) or (neg X and Y)).
-component(X notequiv Y, (X and neg Y) or (neg X and Y)).
-component(neg(X notequiv Y), (X and Y) or (neg X and neg Y)).
+component(X equiv Y, (neg X or Y) and (X or neg Y)).
+component(neg(X equiv Y), (neg X or neg Y) and (X or Y)).
+component(X notequiv Y, (neg X or neg Y) and (X or Y)).
+component(neg(X notequiv Y), (neg X or Y) and (X or neg Y)).
 
 /* singlestep(Old,New) :- new is result of applying single step of expansion
                           process to Old, which is a generalised disjunction
@@ -210,9 +210,8 @@ clauseform(X, Y) :-
 /* resolution(X,Y) :- */
 
 resolution(Res, Final) :-
-    print("Res: "), print(Res), nl,
     resolutionstep(Res, Temp),
-    if_then_else(member([], Temp), print("YES"), resolution(Temp, Final)).
+    if_then_else(member([], Temp), Final = Temp, resolution(Temp, Final)).
 
 
 /* resolutionstep(Old,New) :- new is result of applying single step of
@@ -230,15 +229,15 @@ resolutionstep([Dis1|Rest], New) :-
     fetch(neg Atom, Rest, Dis2),
     remove(Atom, Dis1, Temp1),
     remove(neg Atom, Dis2, Temp2),
-    append(Temp1, Temp2, Newdis),
+    append(Temp1, Temp2, Temp3),
+    reduce(Temp3, [], Newdis),
     removesingle(Dis2, Rest, Newrest),
     not(Rest = Newrest),
-    print("a-Rest: "), print(Rest), nl,
-    print("a-Dis1: "), print(Dis1), print("  becomes Temp1: "), print(Temp1), nl,
-    print("a-Dis2: "), print(Dis2), print("  becomes Temp2: "), print(Temp2), nl,
-    print("a-Newdis: "), print(Newdis), nl,
-    append([Newdis], Newrest, New),
-    print("a-New: "), print(New), nl.
+    /*print("a-removing: "), print(Atom), nl,
+    print("a-Dis1: "), print(Dis1), print(" becomes: "), print(Temp1), nl,
+    print("a-Dis2: "), print(Dis2), print(" becomes: "), print(Temp2), nl,
+    print("a-Newdis: "), print(Newdis), nl,*/
+    append([Newdis], Newrest, New).
 
 /* usual atomic resolution rule for negated */
 resolutionstep([Dis1|Rest], New) :-
@@ -246,19 +245,18 @@ resolutionstep([Dis1|Rest], New) :-
     fetch(Atom, Rest, Dis2),
     remove(neg Atom, Dis1, Temp1),
     remove(Atom, Dis2, Temp2),
-    append(Temp1, Temp2, Newdis),
+    append(Temp1, Temp2, Temp3),
+    reduce(Temp3, [], Newdis),
     removesingle(Dis2, Rest, Newrest),
     not(Rest = Newrest),
-    print("b-Rest: "), print(Rest), nl,
-    print("b-Dis1: "), print(Dis1), print("  becomes Temp1: "), print(Temp1), nl,
-    print("b-Dis2: "), print(Dis2), print("  becomes Temp2: "), print(Temp2), nl,
-    print("b-Newdis: "), print(Newdis), nl,
-    append([Newdis], Newrest, New),
-    print("b-New: "), print(New), nl.
+    /*print("b-removing: "), print(Atom), nl,
+    print("b-Dis1: "), print(Dis1), print(" becomes: "), print(Temp1), nl,
+    print("b-Dis2: "), print(Dis2), print(" becomes: "), print(Temp2), nl,
+    print("b-Newdis: "), print(Newdis), nl,*/
+    append([Newdis], Newrest, New).
 
 /* recurse case to allow inner elements to be dealt with */
 resolutionstep([Dis1|Rest], New) :-
-print("here"), nl,
     resolutionstep(Rest, Newrest),
     append([Dis1], Newrest, New).
 
@@ -268,9 +266,9 @@ print("here"), nl,
 test(Formula) :-
     clauseform(neg Formula, CNF),
     print("CNF: "), print(CNF), nl,
-    resolution(CNF, Resolve),
-    print("Resolve: "), print(Resolve), nl,
-    if_then_else(member([], Resolve), print("YES"), print("NO")).
+    reduceall(CNF, [], NewCNF),
+    print("NewCNF: "), print(NewCNF), nl,
+    if_then_else(resolution(NewCNF, Resolve), print("YES"), print("NO")).
 
 
 /* if_then_else(A,B,C) :- if A holds then perform B, otherwise perform C */
