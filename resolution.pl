@@ -29,11 +29,16 @@ fetch(Element, [_ | Rest], Return) :-
 
 /* remove(Item, List, Newlist) :- removes Item from List and produces Newlist */
 
-remove(X, [], []).
+/*remove(X, [], []).
 remove(X, [X|Tail], Newtail) :-
     remove(X, Tail, Newtail).
 remove(X, [Head|Tail], [Head|Newtail]) :-
-    remove(X, Tail, Newtail).
+    remove(X, Tail, Newtail).*/
+
+
+remove(X, [], []) :- !.
+remove(X, [X|Xs], Y) :- !, remove(X, Xs, Y).
+remove(X, [T|Xs], Y) :- !, remove(X, Xs, Y2), append([T], Y2, Y).
 
 /* conjunctive(X) :- X is an alpha formula */
 
@@ -154,10 +159,12 @@ clauseform(X, Y) :-
 /* resolution(X,Y) :- */
 
 resolution(Res, Final) :-
+    print("Res: "), print(Res), nl,
     resolutionstep(Res, Temp),
-    resolution(Temp, Final).
+    if_then_else(member([], Res), print("YES"), resolution(Temp, Final)).
 
-resolution(Res, Res).
+resolution(Res, Res) :-
+    print("NO inner"), nl.
 
 /* resolutionstep(Old,New) :- new is result of applying single step of
                               resolution process to Old */
@@ -174,9 +181,18 @@ resolutionstep([Dis1|Rest], New) :-
     fetch(neg Atom, Rest, Dis2),
     remove(Atom, Dis1, Temp1),
     remove(neg Atom, Dis2, Temp2),
-    append(Temp1, Temp2, NewDis),
-    remove(Dis2, Rest, Newrest),
-    New = [NewDis | Newrest].
+    print("here"), nl,
+    append(Temp1, Temp2, Newdis),
+    /*remove(Dis2, Rest, Newrest),*/
+    print("a-Dis1: "), print(Dis1), print("  becomes Temp1: "), print(Temp1), nl,
+    print("a-Dis2: "), print(Dis2), print("  becomes Temp2: "), print(Temp2), nl,
+    print("a-Newdis: "), print(Newdis), nl,
+    not(member(Newdis, Rest)),
+    append([Dis1], Rest, Newrest),
+    print("a-Newrest: "), print(Newrest), nl,
+    append([Newdis], Newrest, New),
+    print("a-New: "), print([Newdis | Newrest]), nl.
+    /*New = [Newdis | Newrest].*/
 
 /* usual atomic resolution rule for negated */
 resolutionstep([Dis1|Rest], New) :-
@@ -184,12 +200,21 @@ resolutionstep([Dis1|Rest], New) :-
     fetch(Atom, Rest, Dis2),
     remove(neg Atom, Dis1, Temp1),
     remove(Atom, Dis2, Temp2),
-    append(Temp1, Temp2, NewDis),
-    remove(Dis2, Rest, Newrest),
-    New = [NewDis | Newrest].
+    append(Temp1, Temp2, Newdis),
+    /*remove(Dis2, Rest, Newrest),*/
+    print("b-Dis1: "), print(Dis1), print("  becomes Temp1: "), print(Temp1), nl,
+    print("b-Dis2: "), print(Dis2), print("  becomes Temp2: "), print(Temp2), nl,
+    print("b-Newdis: "), print(Newdis), nl,
+    not(member(Newdis, Rest)),
+    append([Dis1], Rest, Newrest),
+    print("b-Newrest: "), print(Newrest), nl,
+    append([Newdis], Newrest, New),
+    print("b-New: "), print([Newdis | Newrest]), nl.
+    /*New = [Newdis | Newrest].*/
 
 /* recurse case to allow inner elements to be dealt with */
 resolutionstep([Dis1|Rest], New) :-
+print("here"), nl,
     resolutionstep(Rest, Newrest),
     append([Dis1], Newrest, New).
 
@@ -198,7 +223,9 @@ resolutionstep([Dis1|Rest], New) :-
 
 test(Formula) :-
     clauseform(neg Formula, CNF),
+    print("CNF: "), print(CNF), nl,
     resolution(CNF, Resolve),
+    print("Resolve: "), print(Resolve), nl,
     if_then_else(member([], Resolve), print("YES"), print("NO")).
 
 
