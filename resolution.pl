@@ -4,7 +4,7 @@
 3. YES
 4. NO
 5. YES
-6.
+6. NO
 7. YES
 8. NO
 9. NO
@@ -69,8 +69,11 @@ removesingle(Item, [Head | Rest], Newlistone) :-
 /* removeall(Item,List,Newlist) :- removes all occurences of the Item from
                                    the provided list*/
 removeall(Item, [], []) :- !.
-removeall(Item, [Item |Rest], Newlist) :-
+removeall(Item, [Item | Rest], Newlist) :-
     !, removeall(Item, Rest, Newlist).
+removeall(Formula, [Item | Rest], Newlist) :-
+    equivformula(Formula, Item),
+    !, removeall(Formula, Rest, Newlist).
 removeall(Item, [Head | Rest], Newlistone) :-
     !, removeall(Item, Rest, Newlisttwo),
     append([Head], Newlisttwo, Newlistone).
@@ -93,6 +96,16 @@ fetch(Element, [List | Rest], Return) :-
 fetch(Element, [_ | Rest], Return) :-
     fetch(Element, Rest, Return).
 
+/* fetchprime(Formula,Biglist,Return) :- searches thorugh a list of list to
+                                         see if sematic equivilent to formula
+                                         exists in any, returning the list
+                                         with the element present */
+fetchprime(Formula, [List | Rest], Return) :-
+    memberprime(Formula, List),
+    Return = List.
+fetchprime(Formula, [_ | Rest], Return) :-
+    fetchprime(Formula, Rest, Return).
+
 
 /* if_then_else(A,B,C) :- if A holds then perform B, otherwise perform C */
 if_then_else(A, B, C) :-
@@ -108,11 +121,69 @@ equivformula(neg Formulaone, neg Formulatwo) :-
     equivformula(Formulaone, Formulatwo).
 equivformula(Atomone, Atomtwo) :-
     Atomone == Atomtwo.
+
+/* case for two 'and' formulae */
 equivformula(Formulaone, Formulatwo) :-
+    andformula(Formulaone),
+    andformula(Formulatwo),
     strip(Formulaone, X1, Y1),
     strip(Formulatwo, X2, Y2),
     ((equivformula(X1, X2), equivformula(Y1, Y2));
      (equivformula(X1, Y2), equivformula(Y1, X2))).
+
+/* case for two 'or' formulae */
+equivformula(Formulaone, Formulatwo) :-
+    orformula(Formulaone),
+    orformula(Formulatwo),
+    strip(Formulaone, X1, Y1),
+    strip(Formulatwo, X2, Y2),
+    ((equivformula(X1, X2), equivformula(Y1, Y2));
+    (equivformula(X1, Y2), equivformula(Y1, X2))).
+
+/* case for two 'equiv' formulae */
+equivformula(Formulaone, Formulatwo) :-
+    eqformula(Formulaone),
+    eqformula(Formulatwo),
+    strip(Formulaone, X1, Y1),
+    strip(Formulatwo, X2, Y2),
+    ((equivformula(X1, X2), equivformula(Y1, Y2));
+    (equivformula(X1, Y2), equivformula(Y1, X2))).
+
+/* case for two 'notequiv' formulae */
+equivformula(Formulaone, Formulatwo) :-
+    noteqformula(Formulaone),
+    noteqformula(Formulatwo),
+    strip(Formulaone, X1, Y1),
+    strip(Formulatwo, X2, Y2),
+    ((equivformula(X1, X2), equivformula(Y1, Y2));
+    (equivformula(X1, Y2), equivformula(Y1, X2))).
+
+/* case for two 'uparrow' formulae */
+equivformula(Formulaone, Formulatwo) :-
+    upformula(Formulaone),
+    upformula(Formulatwo),
+    strip(Formulaone, X1, Y1),
+    strip(Formulatwo, X2, Y2),
+    ((equivformula(X1, X2), equivformula(Y1, Y2));
+    (equivformula(X1, Y2), equivformula(Y1, X2))).
+
+/* case for two 'downarrow' formulau */
+equivformula(Formulaone, Formulatwo) :-
+    downformula(Formulaone),
+    downformula(Formulatwo),
+    strip(Formulaone, X1, Y1),
+    strip(Formulatwo, X2, Y2),
+    ((equivformula(X1, X2), equivformula(Y1, Y2));
+    (equivformula(X1, Y2), equivformula(Y1, X2))).
+
+andformula(_ and _).
+orformula(_ or _).
+eqformula(_ equiv _).
+noteqformula(_ notequiv _).
+upformula(_ uparrow _).
+downformula(_ downarrow _).
+
+
 
 /*
    ==================
@@ -153,16 +224,6 @@ equivilent(neg(_ notequiv _)).
 unary(neg neg _).
 unary(neg true).
 unary(neg false).
-
-
-/* immediateequiv(X) :- signals when a new formula is of the specific form
-                        'X equiv Y' */
-immediateequiv(_ equiv _).
-
-
-/* immediatenotequiv(X) :- signals when a new formula is of the specific form
-                           'X notequiv Y' */
-immediatenotequiv(_ notequiv _).
 
 
 /* components(X,Y,Z) :- Y and Z are the components of formula X */
@@ -216,16 +277,6 @@ strip(X downarrow Y, X, Y).
 */
 
 /* test(Formula) :- will print YES is formula is a tautology, NO otherwise */
-test(Formula) :-
-    immediateequiv(Formula),
-    strip(Formula, X, Y),
-    equivformula(X, Y),
-    print("YES").
-test(Formula) :-
-    immediatenotequiv(Formula),
-    strip(Formula, X, Y),
-    equivformula(X, Y),
-    print("NO").
 test(Formula) :-
     if_then_else(expand([[neg Formula]], Y), print("YES"), print("NO")).
 
@@ -307,9 +358,9 @@ resolutionstep([Disjunction|Rest], New) :-
 
 /* non-negated formulaic resolution rule */
 resolutionstep([Dis1|Rest], New) :-
-    memberprime(Formula, Dis1),
+    member(Formula, Dis1),
     (unary(Formula); equivilent(Formula); conjunctive(Formula); disjunctive(Formula)),
-    fetch(neg Formula, Rest, Dis2),
+    fetchprime(neg Formula, Rest, Dis2),
     removeall(Formula, Dis1, Temp1),
     removeall(neg Formula, Dis2, Temp2),
     append(Temp1, Temp2, Newdis),
@@ -319,9 +370,9 @@ resolutionstep([Dis1|Rest], New) :-
 
 /* negated formulaic resolution rule */
 resolutionstep([Dis1|Rest], New) :-
-    memberprime(neg Formula, Dis1),
+    member(neg Formula, Dis1),
     (unary(neg Formula); equivilent(neg Formula); conjunctive(neg Formula); disjunctive(neg Formula)),
-    fetch(Formula, Rest, Dis2),
+    fetchprime(Formula, Rest, Dis2),
     removeall(neg Formula, Dis1, Temp1),
     removeall(Formula, Dis2, Temp2),
     append(Temp1, Temp2, Newdis),
