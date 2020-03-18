@@ -227,17 +227,18 @@ test(Formula) :-
     equivformula(X, Y),
     print("NO").
 test(Formula) :-
-    if_then_else(prove([[neg Formula]]), print("YES"), print("NO")).
+    if_then_else(expand([[neg Formula]], Y), print("YES"), print("NO")).
 
 
-/* prove(Formula) :- applies CNF conversion on Formula, applying resolution
-                     rules after each step in attempt to conclude proof early */
-prove(Formula) :-
+/* expand(Formula,Return) :- applies CNF conversion on Formula, applying
+                             resolution rules after each step in attempt to
+                             conclude proof early */
+expand(Formula, Return) :-
     reduceall(Formula, [], Temp),
-    resolution(Temp).
-prove(Formula) :-
+    resolution(Temp, Return).
+expand(Formula, Return) :-
     singlestep(Formula, Temp),
-    !, prove(Temp).
+    !, expand(Temp, Return).
 
 
 /* singlestep(Old,New) :- new is result of applying single step of expansion
@@ -285,14 +286,15 @@ singlestep([Disjunction|Rest], New) :-
     append([Disjunction], Newrest, New).
 
 
-/* resolution(Formula) :- conducts all possible combinations of resolution
-                          rules on the provided disjunctions within Formula,
-                          succeeding if the empty list is ever encountered */
-resolution(Res) :-
+/* resolution(Formula,Return) :- conducts all possible combinations of
+                                 resolution rules on the provided disjunctions
+                                 within Formula, succeeding if the empty list
+                                 is ever encountered */
+resolution(Res, Res) :-
     member([], Res).
-resolution(Res) :-
+resolution(Res, Return) :-
     resolutionstep(Res, Temp),
-    resolution(Temp).
+    resolution(Temp, Return).
 
 
 /* resolutionstep(Old,New) :- New is result of applying single step of
