@@ -1,10 +1,17 @@
 ?-op(140, fy, neg).
 ?-op(160, xfy, [and, or, imp, revimp, uparrow, downarrow, notimp, notrevimp, equiv, notequiv]).
 
-/* member(Item, List) :- Item occurs in list */
-
+/* member(Item,List) :- item occurs in list */
+/* checks if formulae are equivilent */
 member(X, [X|_]).
 member(X, [_|Tail]) :-
+    member(X, Tail).
+
+/* memberprime(Formula,List) :- will see if a semantically equivilent formula
+                            exists in the list */
+memberprime(X, [Head|Tail]) :-
+    equivformula(X, Head).
+memberprime(X, [_|Tail]) :-
     member(X, Tail).
 
 
@@ -67,18 +74,11 @@ fetch(Element, [_ | Rest], Return) :-
     fetch(Element, Rest, Return).
 
 
-/* remove(Item, List, Newlist) :- removes Item from List and produces Newlist */
+/* removeall(Item, List, Newlist) :- removes Item from List and produces Newlist */
 
-/*remove(X, [], []).
-remove(X, [X|Tail], Newtail) :-
-    remove(X, Tail, Newtail).
-remove(X, [Head|Tail], [Head|Newtail]) :-
-    remove(X, Tail, Newtail).*/
-
-
-remove(X, [], []) :- !.
-remove(X, [X|Xs], Y) :- !, remove(X, Xs, Y).
-remove(X, [T|Xs], Y) :- !, remove(X, Xs, Y2), append([T], Y2, Y).
+removeall(X, [], []) :- !.
+removeall(X, [X|Xs], Y) :- !, removeall(X, Xs, Y).
+removeall(X, [T|Xs], Y) :- !, removeall(X, Xs, Y2), append([T], Y2, Y).
 
 /* conjunctive(X) :- X is an alpha formula */
 
@@ -108,6 +108,11 @@ equivilent(_ equiv _).
 equivilent(_ notequiv _).
 equivilent(neg(_ equiv _)).
 equivilent(neg(_ notequiv _)).
+
+/* necessary for immediate check of equivilence */
+
+immediateequiv(_ equiv _).
+immediatenotequiv(_ notequiv _).
 
 /* unary(X) :- X is a double negation or negated constant */
 
@@ -147,6 +152,7 @@ component(neg(X equiv Y), (neg X or neg Y) and (X or Y)).
 component(X notequiv Y, (neg X or neg Y) and (X or Y)).
 component(neg(X notequiv Y), (neg X or Y) and (X or neg Y)).
 
+
 /* singlestep(Old,New) :- new is result of applying single step of expansion
                           process to Old, which is a generalised disjunction
                           of generalised conjunctions */
@@ -155,33 +161,38 @@ singlestep([Disjunction|Rest], New) :-
     member(Formula, Disjunction),
     unary(Formula),
     component(Formula, Newformula),
-    remove(Formula, Disjunction, Temporary),
+    removeall(Formula, Disjunction, Temporary),
     append([Newformula], Temporary, Newdisjunction),
+    print("Applying Unary..."), nl,
     New = [Newdisjunction | Rest].
 
 singlestep([Disjunction|Rest], New) :-
     member(Formula, Disjunction),
     equivilent(Formula),
     component(Formula, Newformula),
-    remove(Formula, Disjunction, Temporary),
+    removeall(Formula, Disjunction, Temporary),
     append([Newformula], Temporary, Newdisjunction),
+    print("Applying Equiv..."), nl,
     New = [Newdisjunction | Rest].
+
 
 singlestep([Disjunction|Rest], New) :-
     member(Alpha, Disjunction),
     conjunctive(Alpha),
     components(Alpha, Alphaone, Alphatwo),
-    remove(Alpha, Disjunction, Temporary),
+    removeall(Alpha, Disjunction, Temporary),
     append([Alphaone], Temporary, Newdisone),
     append([Alphatwo], Temporary, Newdistwo),
+    print("Applying Alpha..."), nl,
     New = [Newdisone, Newdistwo | Rest].
 
 singlestep([Disjunction|Rest], New) :-
     member(Beta, Disjunction),
     disjunctive(Beta),
     components(Beta, Betaone, Betatwo),
-    remove(Beta, Disjunction, Temporary),
+    removeall(Beta, Disjunction, Temporary),
     Newdis = [Betaone, Betatwo | Temporary],
+    print("Applying Beta..."), nl,
     New = [Newdis | Rest].
 
 singlestep([Disjunction|Rest], New) :-
@@ -191,28 +202,32 @@ singlestep([Disjunction|Rest], New) :-
     append([Disjunction], Newrest, New).
 
 
-/* expand(Old,New) :- New is result of applying singlestep as many times as
+/* prove(Old,New) :- New is result of applying singlestep as many times as
                       possible on Old */
 
-expand(Con, Newcon) :-
+prove(Con) :-
+    reduceall(Con, [], Tempcon),
+    nl,print("Attempting resolution..."), print(Tempcon), nl,
+    resolution(Tempcon),
+    print("Just resolved...."), print(Tempcon), nl.
+
+prove(Con) :-
+    nl,print("Con is...."), print(Con), nl,
     singlestep(Con, Temp),
-    expand(Temp, Newcon).
-
-expand(Con, Con).
-
-
-/* clauseform(X,Y) :- Y is the CNF of X */
-
-clauseform(X, Y) :-
-    expand([[X]], Y).
+    !,
+    print("Just took a step...."), print(Temp), nl,
+    prove(Temp).
 
 
 /* resolution(X,Y) :- */
 
-resolution(Res, Final) :-
+/* true when the empty list is present after rules applied */
+resolution(Res) :-
+    member([], Res).
+/* recurses until empty list or exhausts options */
+resolution(Res) :-
     resolutionstep(Res, Temp),
-    if_then_else(member([], Temp), Final = Temp, resolution(Temp, Final)).
-
+    resolution(Temp).
 
 /* resolutionstep(Old,New) :- new is result of applying single step of
                               resolution process to Old */
@@ -220,15 +235,40 @@ resolution(Res, Final) :-
 /* trivial resolvant case */
 resolutionstep([Disjunction|Rest], New) :-
     member(false, Disjunction),
-    remove(false, Disjunction, Temp),
+    removeall(false, Disjunction, Temp),
     New = [Temp | Rest].
+
+/* non-negated formulaic resolution rule */
+resolutionstep([Dis1|Rest], New) :-
+    memberprime(Formula, Dis1),
+    (unary(Formula); equivilent(Formula); conjunctive(Formula); disjunctive(Formula)),
+    fetch(neg Formula, Rest, Dis2),
+    removeall(Formula, Dis1, Temp1),
+    removeall(neg Formula, Dis2, Temp2),
+    append(Temp1, Temp2, Newdis),
+    removesingle(Dis2, Rest, Newrest),
+    not(Rest = Newrest),
+    append([Newdis], Newrest, New).
+
+/* negated formulaic resolution rule */
+resolutionstep([Dis1|Rest], New) :-
+    memberprime(neg Formula, Dis1),
+    (unary(neg Formula); equivilent(neg Formula); conjunctive(neg Formula); disjunctive(neg Formula)),
+    fetch(Formula, Rest, Dis2),
+    removeall(neg Formula, Dis1, Temp1),
+    removeall(Formula, Dis2, Temp2),
+    append(Temp1, Temp2, Newdis),
+    removesingle(Dis2, Rest, Newrest),
+    not(Rest = Newrest),
+    append([Newdis], Newrest, New).
+
 
 /* usual atomic resolution rule for non-negated */
 resolutionstep([Dis1|Rest], New) :-
     member(Atom, Dis1),
     fetch(neg Atom, Rest, Dis2),
-    remove(Atom, Dis1, Temp1),
-    remove(neg Atom, Dis2, Temp2),
+    removeall(Atom, Dis1, Temp1),
+    removeall(neg Atom, Dis2, Temp2),
     append(Temp1, Temp2, Temp3),
     reduce(Temp3, [], Newdis),
     removesingle(Dis2, Rest, Newrest),
@@ -243,8 +283,8 @@ resolutionstep([Dis1|Rest], New) :-
 resolutionstep([Dis1|Rest], New) :-
     member(neg Atom, Dis1),
     fetch(Atom, Rest, Dis2),
-    remove(neg Atom, Dis1, Temp1),
-    remove(Atom, Dis2, Temp2),
+    removeall(neg Atom, Dis1, Temp1),
+    removeall(Atom, Dis2, Temp2),
     append(Temp1, Temp2, Temp3),
     reduce(Temp3, [], Newdis),
     removesingle(Dis2, Rest, Newrest),
@@ -263,10 +303,28 @@ resolutionstep([Dis1|Rest], New) :-
 
 /* test(Formula) :- will print YES is formula is a tautology, NO otherwise */
 
+/* cases for when immediately obvious it's provable to prevent large searches */
 test(Formula) :-
+    immediateequiv(Formula),
+    strip(Formula, X, Y),
+    equivformula(X, Y),
+    print("YES").
+test(Formula) :-
+    immediatenotequiv(Formula),
+    strip(Formula, X, Y),
+    equivformula(X, Y),
+    print("NO").
+
+/* usual test call, where immidiate observation not encountered */
+test(Formula) :-
+    if_then_else(prove([[neg Formula]]), print("YES"), print("NO")).
+
+temp(Formula) :-
     clauseform(neg Formula, CNF),
     print("CNF: "), print(CNF), nl,
     reduceall(CNF, [], NewCNF),
+    /* cut to prevent backtracking */
+    !,
     print("NewCNF: "), print(NewCNF), nl,
     if_then_else(resolution(NewCNF, Resolve), print("YES"), print("NO")).
 
@@ -279,3 +337,30 @@ if_then_else(A, B, C) :-
 
 if_then_else(A, B, C) :-
     C.
+
+/* strip(Formula, X, Y) :- breaks down formulae into atomic parts, only for
+                           those where the order of the variables does not
+                           matter */
+
+strip(X equiv Y, X, Y).
+strip(X notequiv Y, X, Y).
+strip(X and Y, X, Y).
+strip(X or Y, X, Y).
+strip(X uparrow Y, X, Y).
+strip(X downarrow Y, X, Y).
+
+/* equivformula(Formulaone,Formulatwo) :- will compare each formula to see if
+                                          they are sematically equivilent */
+
+/* strips away neg cases */
+equivformula(neg Formulaone, neg Formulatwo) :-
+    equivformula(Formulaone, Formulatwo).
+/* deals with comparing atomic values */
+equivformula(Atomone, Atomtwo) :-
+    Atomone == Atomtwo.
+/* breaks down larger formulae */
+equivformula(Formulaone, Formulatwo) :-
+    strip(Formulaone, X1, Y1),
+    strip(Formulatwo, X2, Y2),
+    ((equivformula(X1, X2), equivformula(Y1, Y2));
+     (equivformula(X1, Y2), equivformula(Y1, X2))).
