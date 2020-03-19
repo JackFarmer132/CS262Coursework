@@ -4,15 +4,15 @@
 3. YES
 4. NO
 5. YES
-6. NO
+6. YES
 7. YES
 8. NO
 9. NO
 10. YES
 */
 
-
-/* initialise opeartors and their precedence */
+/* (Taken from 'first-order logic and automated theorem proving' as suggested)
+   initialise opeartors and their precedence */
 ?-op(140, fy, neg).
 ?-op(160, xfy, [and, or, imp, revimp, uparrow, downarrow, notimp, notrevimp, equiv, notequiv]).
 
@@ -22,17 +22,10 @@
     ====================
 */
 
-/* member(Item,List) :- item occurs in list */
+/* (Taken from 'first-order logic and automated theorem proving' as suggested)
+   member(Item,List) :- item occurs in list */
 member(X, [X|_]).
 member(X, [_|Tail]) :-
-    member(X, Tail).
-
-
-/* memberprime(Formula,List) :- will see if a semantically equivilent formula
-                                exists in the list */
-memberprime(X, [Head|Tail]) :-
-    equivformula(X, Head).
-memberprime(X, [_|Tail]) :-
     member(X, Tail).
 
 
@@ -71,9 +64,6 @@ removesingle(Item, [Head | Rest], Newlistone) :-
 removeall(Item, [], []) :- !.
 removeall(Item, [Item | Rest], Newlist) :-
     !, removeall(Item, Rest, Newlist).
-removeall(Formula, [Item | Rest], Newlist) :-
-    equivformula(Formula, Item),
-    !, removeall(Formula, Rest, Newlist).
 removeall(Item, [Head | Rest], Newlistone) :-
     !, removeall(Item, Rest, Newlisttwo),
     append([Head], Newlisttwo, Newlistone).
@@ -96,18 +86,9 @@ fetch(Element, [List | Rest], Return) :-
 fetch(Element, [_ | Rest], Return) :-
     fetch(Element, Rest, Return).
 
-/* fetchprime(Formula,Biglist,Return) :- searches thorugh a list of list to
-                                         see if sematic equivilent to formula
-                                         exists in any, returning the list
-                                         with the element present */
-fetchprime(Formula, [List | Rest], Return) :-
-    memberprime(Formula, List),
-    Return = List.
-fetchprime(Formula, [_ | Rest], Return) :-
-    fetchprime(Formula, Rest, Return).
 
-
-/* if_then_else(A,B,C) :- if A holds then perform B, otherwise perform C */
+/* (Taken from 'first-order logic and automated theorem proving' as suggested)
+   if_then_else(A,B,C) :- if A holds then perform B, otherwise perform C */
 if_then_else(A, B, C) :-
     A,
     !, B.
@@ -115,75 +96,29 @@ if_then_else(A, B, C) :-
     C.
 
 
-/* equivformula(Formulaone,Formulatwo) :- will compare each formula to see if
-                                          they are sematically equivilent */
-equivformula(neg Formulaone, neg Formulatwo) :-
-    equivformula(Formulaone, Formulatwo).
-equivformula(Atomone, Atomtwo) :-
-    Atomone == Atomtwo.
+/* usable(Clause) :- ensures the given clause has no elements along with the
+                     negative of the element, as means is not useful for
+                     resolution rule applications
 
-/* case for two 'and' formulae */
-equivformula(Formulaone, Formulatwo) :-
-    andformula(Formulaone),
-    andformula(Formulatwo),
-    strip(Formulaone, X1, Y1),
-    strip(Formulatwo, X2, Y2),
-    ((equivformula(X1, X2), equivformula(Y1, Y2));
-     (equivformula(X1, Y2), equivformula(Y1, X2))).
+given some [x, neg x] formula, the only case where [] is achieved from
+resolution rule is if [x] and [neg x] both appear elsewhere. in this case though,
+[x, neg x] is not needed, as [x] and [neg x] can undergo resolution with
+just themselves. this means that any formula with an atom and its negative
+variant need not be used in resolution, as either it is not helpful in attaining
+[] or there are shorter formulae elsewhere that will get [] quicker */
 
-/* case for two 'or' formulae */
-equivformula(Formulaone, Formulatwo) :-
-    orformula(Formulaone),
-    orformula(Formulatwo),
-    strip(Formulaone, X1, Y1),
-    strip(Formulatwo, X2, Y2),
-    ((equivformula(X1, X2), equivformula(Y1, Y2));
-    (equivformula(X1, Y2), equivformula(Y1, X2))).
-
-/* case for two 'equiv' formulae */
-equivformula(Formulaone, Formulatwo) :-
-    eqformula(Formulaone),
-    eqformula(Formulatwo),
-    strip(Formulaone, X1, Y1),
-    strip(Formulatwo, X2, Y2),
-    ((equivformula(X1, X2), equivformula(Y1, Y2));
-    (equivformula(X1, Y2), equivformula(Y1, X2))).
-
-/* case for two 'notequiv' formulae */
-equivformula(Formulaone, Formulatwo) :-
-    noteqformula(Formulaone),
-    noteqformula(Formulatwo),
-    strip(Formulaone, X1, Y1),
-    strip(Formulatwo, X2, Y2),
-    ((equivformula(X1, X2), equivformula(Y1, Y2));
-    (equivformula(X1, Y2), equivformula(Y1, X2))).
-
-/* case for two 'uparrow' formulae */
-equivformula(Formulaone, Formulatwo) :-
-    upformula(Formulaone),
-    upformula(Formulatwo),
-    strip(Formulaone, X1, Y1),
-    strip(Formulatwo, X2, Y2),
-    ((equivformula(X1, X2), equivformula(Y1, Y2));
-    (equivformula(X1, Y2), equivformula(Y1, X2))).
-
-/* case for two 'downarrow' formulau */
-equivformula(Formulaone, Formulatwo) :-
-    downformula(Formulaone),
-    downformula(Formulatwo),
-    strip(Formulaone, X1, Y1),
-    strip(Formulatwo, X2, Y2),
-    ((equivformula(X1, X2), equivformula(Y1, Y2));
-    (equivformula(X1, Y2), equivformula(Y1, X2))).
-
-andformula(_ and _).
-orformula(_ or _).
-eqformula(_ equiv _).
-noteqformula(_ notequiv _).
-upformula(_ uparrow _).
-downformula(_ downarrow _).
-
-
+usable([]).
+usable([Element | Rest]) :-
+    not(negformula(Element)),
+    not(member(neg Element, Rest)),
+    removesingle(neg Element, Rest, Newrest),
+    usable(Newrest).
+usable([Element | Rest]) :-
+    negformula(Element),
+    component(neg Element, Newelement),
+    not(member(Newelement, Rest)),
+    removesingle(Newelement, Rest, Newrest),
+    usable(Newrest).
 
 /*
    ==================
@@ -191,7 +126,8 @@ downformula(_ downarrow _).
    ==================
 */
 
-/* conjunctive(X) :- X is an alpha formula */
+/* (Taken from 'first-order logic and automated theorem proving' as suggested)
+   conjunctive(X) :- X is an alpha formula */
 conjunctive(_ and _).
 conjunctive(neg(_ or _)).
 conjunctive(neg(_ imp _)).
@@ -202,7 +138,8 @@ conjunctive(_ notimp _).
 conjunctive(_ notrevimp _).
 
 
-/* disjunctive(X) :- X is beta formula */
+/* (Taken from 'first-order logic and automated theorem proving' as suggested)
+   disjunctive(X) :- X is beta formula */
 disjunctive(neg(_ and _)).
 disjunctive(_ or _).
 disjunctive(_ imp _).
@@ -220,13 +157,15 @@ equivilent(neg(_ equiv _)).
 equivilent(neg(_ notequiv _)).
 
 
-/* unary(X) :- X is a double negation or negated constant */
+/* (Taken from 'first-order logic and automated theorem proving' as suggested)
+   unary(X) :- X is a double negation or negated constant */
 unary(neg neg _).
 unary(neg true).
 unary(neg false).
 
 
-/* components(X,Y,Z) :- Y and Z are the components of formula X */
+/* (Taken from 'first-order logic and automated theorem proving' as suggested)
+   components(X,Y,Z) :- Y and Z are the components of formula X */
 components(X and Y, X, Y).
 components(neg(X and Y), neg X, neg Y).
 components(X or Y, X, Y).
@@ -245,7 +184,8 @@ components(X notrevimp Y, neg X, Y).
 components(neg(X notrevimp Y), X, neg Y).
 
 
-/* component(X,Y) :- Y is the component of the unary formula X */
+/* (Taken from 'first-order logic and automated theorem proving' as suggested)
+   component(X,Y) :- Y is the component of the unary formula X */
 component(neg neg X, X).
 component(neg true, false).
 component(neg false, true).
@@ -260,15 +200,8 @@ component(X notequiv Y, (neg X or neg Y) and (X or Y)).
 component(neg(X notequiv Y), (neg X or Y) and (X or neg Y)).
 
 
-/* strip(Formula, X, Y) :- breaks down Formula into atomic parts, only for
-                           those where the order of the variables does not
-                           matter */
-strip(X equiv Y, X, Y).
-strip(X notequiv Y, X, Y).
-strip(X and Y, X, Y).
-strip(X or Y, X, Y).
-strip(X uparrow Y, X, Y).
-strip(X downarrow Y, X, Y).
+/* negformula(X) :- denotes if X is negated or not */
+negformula(neg _).
 
 /*
    ================
@@ -285,11 +218,11 @@ test(Formula) :-
                              resolution rules after each step in attempt to
                              conclude proof early */
 expand(Formula, Return) :-
-    reduceall(Formula, [], Temp),
-    resolution(Temp, Return).
-expand(Formula, Return) :-
     singlestep(Formula, Temp),
     !, expand(Temp, Return).
+expand(Formula, Return) :-
+reduceall(Formula, [], Temp),
+resolution(Temp, Return).
 
 
 /* singlestep(Old,New) :- new is result of applying single step of expansion
@@ -356,38 +289,17 @@ resolutionstep([Disjunction|Rest], New) :-
     removeall(false, Disjunction, Temp),
     New = [Temp | Rest].
 
-/* non-negated formulaic resolution rule */
-resolutionstep([Dis1|Rest], New) :-
-    member(Formula, Dis1),
-    (unary(Formula); equivilent(Formula); conjunctive(Formula); disjunctive(Formula)),
-    fetchprime(neg Formula, Rest, Dis2),
-    removeall(Formula, Dis1, Temp1),
-    removeall(neg Formula, Dis2, Temp2),
-    append(Temp1, Temp2, Newdis),
-    removesingle(Dis2, Rest, Newrest),
-    not(Rest = Newrest),
-    append([Newdis], Newrest, New).
-
-/* negated formulaic resolution rule */
-resolutionstep([Dis1|Rest], New) :-
-    member(neg Formula, Dis1),
-    (unary(neg Formula); equivilent(neg Formula); conjunctive(neg Formula); disjunctive(neg Formula)),
-    fetchprime(Formula, Rest, Dis2),
-    removeall(neg Formula, Dis1, Temp1),
-    removeall(Formula, Dis2, Temp2),
-    append(Temp1, Temp2, Newdis),
-    removesingle(Dis2, Rest, Newrest),
-    not(Rest = Newrest),
-    append([Newdis], Newrest, New).
-
 /* usual atomic resolution rule for non-negated */
 resolutionstep([Dis1|Rest], New) :-
     member(Atom, Dis1),
+    usable(Dis1),
     fetch(neg Atom, Rest, Dis2),
+    usable(Dis2),
     removeall(Atom, Dis1, Temp1),
     removeall(neg Atom, Dis2, Temp2),
     append(Temp1, Temp2, Temp3),
     reduce(Temp3, [], Newdis),
+    usable(Newdis),
     removesingle(Dis2, Rest, Newrest),
     not(Rest = Newrest),
     append([Newdis], Newrest, New).
@@ -395,11 +307,14 @@ resolutionstep([Dis1|Rest], New) :-
 /* usual atomic resolution rule for negated */
 resolutionstep([Dis1|Rest], New) :-
     member(neg Atom, Dis1),
+    usable(Dis1),
     fetch(Atom, Rest, Dis2),
+    usable(Dis2),
     removeall(neg Atom, Dis1, Temp1),
     removeall(Atom, Dis2, Temp2),
     append(Temp1, Temp2, Temp3),
     reduce(Temp3, [], Newdis),
+    usable(Newdis),
     removesingle(Dis2, Rest, Newrest),
     not(Rest = Newrest),
     append([Newdis], Newrest, New).
